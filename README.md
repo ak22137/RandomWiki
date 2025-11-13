@@ -203,20 +203,6 @@ await fetch('/generate-animation', {...});
 
 ---
 
-## 🌟 Credits
 
-Created with modern web technologies and AI capabilities:
-- **AI Model**: Mistral AI (mistral-small-latest)
-- **Visualization**: p5.js, D3.js, GSAP, Chart.js, Three.js, Plotly
-- **Framework**: Flask (Python)
-- **Architecture**: Server-Sent Events streaming
-
----
-
-## 📝 License
-
-This project is provided as-is for educational and experimental purposes. The AI-generated content is created by Mistral AI and subject to their terms of service.
-
----
 
 **Built with ❤️ for interactive learning and creative AI exploration**
