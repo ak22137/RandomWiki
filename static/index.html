@@ -169,12 +169,31 @@
         }
 
         .error-message {
-            background: #fee;
-            border: 2px solid #fcc;
+            background: #fff3cd;
+            border: 2px solid #ffc107;
             border-radius: 10px;
             padding: 20px;
-            color: #c33;
+            color: #856404;
             margin: 20px;
+        }
+
+        .error-message.critical {
+            background: #fee;
+            border: 2px solid #fcc;
+            color: #c33;
+        }
+
+        .error-message strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .error-message .retry-hint {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(0,0,0,0.1);
+            font-size: 0.95em;
         }
 
         footer {
@@ -228,6 +247,9 @@
                 <span class="spinner"></span>
                 <span>Generating content...</span>
             </div>
+            <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
+                ⏱️ <em>Note: Minimum 5 seconds between requests to prevent rate limits</em>
+            </div>
         </div>
 
         <div id="content-display" class="empty">
@@ -243,6 +265,34 @@
         const contentDisplay = document.getElementById('content-display');
         const loadingStatus = document.getElementById('loading-status');
         const buttons = document.querySelectorAll('button');
+        let rateLimitTimeout = null;
+
+        /**
+         * Start countdown timer for rate limit
+         */
+        function startRateLimitCountdown(seconds) {
+            let remaining = seconds;
+            
+            const updateTimer = () => {
+                if (remaining <= 0) {
+                    clearInterval(rateLimitTimeout);
+                    const timerElement = document.getElementById('rate-limit-timer');
+                    if (timerElement) {
+                        timerElement.textContent = 'You can try again now! ✅';
+                    }
+                    return;
+                }
+                
+                const timerElement = document.getElementById('rate-limit-timer');
+                if (timerElement) {
+                    timerElement.textContent = `Please wait ${remaining} seconds...`;
+                }
+                remaining--;
+            };
+            
+            updateTimer();
+            rateLimitTimeout = setInterval(updateTimer, 1000);
+        }
 
         /**
          * Simple Markdown to HTML converter
@@ -317,6 +367,8 @@
          * Generate content by streaming from the backend
          */
         async function generateContent(topic) {
+            console.log('Generate content called for topic:', topic);
+            
             // Reset display
             contentDisplay.innerHTML = '';
             contentDisplay.classList.remove('empty');
@@ -328,6 +380,8 @@
             let accumulatedText = '';
 
             try {
+                console.log('Sending POST request to /generate-content');
+                
                 // Make POST request to backend
                 const response = await fetch('/generate-content', {
                     method: 'POST',
@@ -337,6 +391,8 @@
                     body: JSON.stringify({ topic: topic })
                 });
 
+                console.log('Response status:', response.status);
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
@@ -345,16 +401,20 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
+                console.log('Starting to read stream...');
+
                 // Process the stream
                 while (true) {
                     const { done, value } = await reader.read();
 
                     if (done) {
+                        console.log('Stream reading completed');
                         break;
                     }
 
                     // Decode the chunk
                     const chunk = decoder.decode(value, { stream: true });
+                    console.log('Received chunk:', chunk.substring(0, 100));
                     
                     // Process each line (SSE format: "data: {...}\n\n")
                     const lines = chunk.split('\n');
@@ -367,6 +427,7 @@
                                 const data = JSON.parse(jsonData);
                                 
                                 if (data.error) {
+                                    console.error('Error from server:', data.error);
                                     throw new Error(data.error);
                                 }
                                 
@@ -374,13 +435,14 @@
                                     // Accumulate text and update display with formatting
                                     accumulatedText += data.text;
                                     contentDisplay.innerHTML = formatMarkdown(accumulatedText);
+                                    console.log('Updated content, total length:', accumulatedText.length);
                                 }
                                 
                                 if (data.done) {
                                     console.log('Stream completed successfully');
                                 }
                             } catch (parseError) {
-                                console.error('Error parsing JSON:', parseError);
+                                console.error('Error parsing JSON:', parseError, 'JSON data:', jsonData);
                             }
                         }
                     }
@@ -388,17 +450,27 @@
 
             } catch (error) {
                 console.error('Error generating content:', error);
+                
+                // Check if it's a rate limit error
+                const isRateLimit = error.message.includes('Rate limit') || error.message.includes('429') || error.message.includes('quota');
+                
                 contentDisplay.innerHTML = `
-                    <div class="error-message">
-                        <strong>Error:</strong> ${error.message}
-                        <br><br>
-                        Please check your connection and try again.
+                    <div class="error-message ${isRateLimit ? '' : 'critical'}">
+                        <strong>${isRateLimit ? '⏳ Rate Limit Reached' : '❌ Error'}</strong>
+                        ${error.message}
+                        ${isRateLimit ? '<div class="retry-hint"><div id="rate-limit-timer">Please wait 40 seconds...</div><br>💡 Tip: The free tier has limited requests per minute. Consider upgrading your API plan for higher limits.</div>' : ''}
                     </div>
                 `;
+                
+                // Start countdown if rate limit
+                if (isRateLimit) {
+                    startRateLimitCountdown(40);
+                }
             } finally {
                 // Re-enable buttons and hide loading
                 setButtonsDisabled(false);
                 setLoadingStatus(false);
+                console.log('Generation process finished');
             }
         }
 

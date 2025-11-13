@@ -13,9 +13,10 @@ A dynamic web application that generates AI-powered encyclopedia articles using 
 ## 🛠️ Tech Stack
 
 - **Backend**: Python 3.10+ with Flask
-- **AI Model**: Google Gemini 2.0 Flash (via google-genai SDK)
+- **AI Model**: Google Gemini 1.5 Flash 8B (lightweight, efficient)
 - **Frontend**: Vanilla JavaScript (ES6+), HTML5, CSS3
 - **API Architecture**: Server-Sent Events (SSE) for streaming
+- **Rate Limiting**: Built-in 5-second cooldown between requests
 
 ## 📋 Prerequisites
 
