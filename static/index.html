@@ -1,494 +1,260 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RandomWiki: Gemini Content Generator</title>
+    <title>RandomWiki</title>
+    
+    <!-- Visualization Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            overflow: hidden;
-        }
-
-        header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .subtitle {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .controls {
-            padding: 30px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #e9ecef;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        button {
-            flex: 1;
-            min-width: 200px;
-            padding: 15px 25px;
-            font-size: 1.1em;
-            font-weight: 600;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-        }
-
-        button:active:not(:disabled) {
-            transform: translateY(0);
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        #loading-status {
-            text-align: center;
-            padding: 15px;
-            font-size: 1.1em;
-            color: #667eea;
-            font-weight: 600;
-            display: none;
-        }
-
-        #loading-status.active {
-            display: block;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(102, 126, 234, 0.3);
-            border-top-color: #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-            vertical-align: middle;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        #content-display {
-            padding: 40px;
-            min-height: 400px;
-            line-height: 1.8;
-            font-size: 1.05em;
-            color: #333;
-        }
-
-        #content-display.empty {
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #999;
-            font-style: italic;
+            padding: 15px;
         }
-
-        /* Markdown-style formatting */
-        #content-display h2 {
-            font-size: 2em;
-            color: #667eea;
-            margin: 30px 0 20px 0;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
-        }
-
-        #content-display h3 {
-            font-size: 1.5em;
-            color: #764ba2;
-            margin: 25px 0 15px 0;
-        }
-
-        #content-display p {
-            margin: 15px 0;
-            text-align: justify;
-        }
-
-        #content-display ul {
-            margin: 15px 0;
-            padding-left: 30px;
-        }
-
-        #content-display li {
-            margin: 8px 0;
-        }
-
-        #content-display strong {
-            color: #667eea;
-            font-weight: 700;
-        }
-
-        .error-message {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            border-radius: 10px;
-            padding: 20px;
-            color: #856404;
-            margin: 20px;
-        }
-
-        .error-message.critical {
-            background: #fee;
-            border: 2px solid #fcc;
-            color: #c33;
-        }
-
-        .error-message strong {
-            display: block;
-            margin-bottom: 10px;
-            font-size: 1.1em;
-        }
-
-        .error-message .retry-hint {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(0,0,0,0.1);
-            font-size: 0.95em;
-        }
-
-        footer {
+        .start-container {
             text-align: center;
-            padding: 20px;
-            background: #f8f9fa;
-            color: #666;
-            font-size: 0.9em;
-            border-top: 2px solid #e9ecef;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px 30px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
         }
-
+        h1 { 
+            font-size: clamp(2em, 8vw, 3em); 
+            margin-bottom: 15px; 
+        }
+        .start-container p {
+            font-size: clamp(1em, 3vw, 1.2em);
+            margin-bottom: 25px;
+            color: #666;
+        }
+        .start-button {
+            padding: 15px 40px;
+            font-size: clamp(1em, 3vw, 1.3em);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            max-width: 300px;
+        }
+        .start-button:active {
+            transform: scale(0.98);
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #667eea33; border-top-color: #667eea; border-radius: 50%; animation: spin 1s linear infinite; }
+        
+        /* Mobile-specific styles */
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .start-container {
+                padding: 30px 20px;
+                border-radius: 15px;
+            }
             h1 {
-                font-size: 1.8em;
+                margin-bottom: 10px;
             }
-
-            .button-group {
-                flex-direction: column;
+            .start-button {
+                padding: 12px 30px;
             }
-
-            button {
-                min-width: 100%;
-            }
-
-            #content-display {
-                padding: 20px;
+        }
+        
+        /* Small mobile devices */
+        @media (max-width: 480px) {
+            .start-container {
+                padding: 25px 15px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📚 RandomWiki: Gemini Content Generator</h1>
-            <p class="subtitle">Explore AI-Generated Encyclopedia Articles</p>
-        </header>
-
-        <div class="controls">
-            <div class="button-group">
-                <button id="btn-russia" onclick="generateContent('Russia')">
-                    🌍 Generate Page: Russia
-                </button>
-                <button id="btn-japan" onclick="generateContent('Japan')">
-                    🎌 Generate Page: Japan
-                </button>
-                <button id="btn-mars" onclick="generateContent('Mars Mission')">
-                    🚀 Generate Page: Mars Mission
-                </button>
-            </div>
-            <div id="loading-status">
-                <span class="spinner"></span>
-                <span>Generating content...</span>
-            </div>
-            <div style="text-align: center; margin-top: 15px; color: #666; font-size: 0.9em;">
-                ⏱️ <em>Note: Minimum 5 seconds between requests to prevent rate limits</em>
-            </div>
+    <div id="app-container">
+        <div class="start-container">
+            <h1> RandomWiki</h1>
+            <p>AI-Powered Dynamic Encyclopedia</p>
+            <button class="start-button" onclick="startExploring()"> Start Exploring</button>
+            <div id="loading" style="margin-top:30px;display:none;"><span class="spinner"></span> Generating...</div>
         </div>
-
-        <div id="content-display" class="empty">
-            Click a button above to generate AI-powered encyclopedia content
-        </div>
-
-        <footer>
-            Powered by Google Gemini AI • Built with Flask & Vanilla JavaScript
-        </footer>
     </div>
-
     <script>
-        const contentDisplay = document.getElementById('content-display');
-        const loadingStatus = document.getElementById('loading-status');
-        const buttons = document.querySelectorAll('button');
-        let rateLimitTimeout = null;
-
-        /**
-         * Start countdown timer for rate limit
-         */
-        function startRateLimitCountdown(seconds) {
-            let remaining = seconds;
-            
-            const updateTimer = () => {
-                if (remaining <= 0) {
-                    clearInterval(rateLimitTimeout);
-                    const timerElement = document.getElementById('rate-limit-timer');
-                    if (timerElement) {
-                        timerElement.textContent = 'You can try again now! ✅';
-                    }
-                    return;
-                }
-                
-                const timerElement = document.getElementById('rate-limit-timer');
-                if (timerElement) {
-                    timerElement.textContent = `Please wait ${remaining} seconds...`;
-                }
-                remaining--;
-            };
-            
-            updateTimer();
-            rateLimitTimeout = setInterval(updateTimer, 1000);
-        }
-
-        /**
-         * Simple Markdown to HTML converter
-         * Handles: ##/### headings, **bold**, and bullet points
-         */
-        function formatMarkdown(text) {
-            let html = text;
-
-            // Convert H2 headings (## Heading)
-            html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
-
-            // Convert H3 headings (### Heading)
-            html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
-
-            // Convert bold text (**text**)
-            html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-            // Convert bullet points (- item or * item)
-            const lines = html.split('\n');
-            let inList = false;
-            const processedLines = [];
-
-            for (let line of lines) {
-                if (line.trim().match(/^[-*]\s+/)) {
-                    if (!inList) {
-                        processedLines.push('<ul>');
-                        inList = true;
-                    }
-                    const listItem = line.trim().replace(/^[-*]\s+/, '');
-                    processedLines.push(`<li>${listItem}</li>`);
-                } else {
-                    if (inList) {
-                        processedLines.push('</ul>');
-                        inList = false;
-                    }
-                    if (line.trim() && !line.includes('<h2>') && !line.includes('<h3>')) {
-                        processedLines.push(`<p>${line}</p>`);
-                    } else {
-                        processedLines.push(line);
-                    }
+        async function startExploring() {
+            document.getElementById('loading').style.display = 'block';
+            const res = await fetch('/generate-initial-ui', {method: 'POST'});
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('app-container').innerHTML = data.html;
+                if (data.css) {
+                    const style = document.createElement('style');
+                    style.textContent = data.css;
+                    document.head.appendChild(style);
                 }
             }
-
-            if (inList) {
-                processedLines.push('</ul>');
-            }
-
-            return processedLines.join('\n');
         }
-
-        /**
-         * Disable all buttons during generation
-         */
-        function setButtonsDisabled(disabled) {
-            buttons.forEach(button => {
-                button.disabled = disabled;
-            });
-        }
-
-        /**
-         * Show/hide loading status
-         */
-        function setLoadingStatus(active) {
-            if (active) {
-                loadingStatus.classList.add('active');
-            } else {
-                loadingStatus.classList.remove('active');
-            }
-        }
-
-        /**
-         * Generate content by streaming from the backend
-         */
-        async function generateContent(topic) {
-            console.log('Generate content called for topic:', topic);
+        async function generateTopicPage(topic) {
+            console.log('🚀 Starting 3-part generation for topic:', topic);
             
-            // Reset display
-            contentDisplay.innerHTML = '';
-            contentDisplay.classList.remove('empty');
-            
-            // Disable buttons and show loading
-            setButtonsDisabled(true);
-            setLoadingStatus(true);
-
-            let accumulatedText = '';
-
             try {
-                console.log('Sending POST request to /generate-content');
+                // Clean up any previous animations
+                console.log('🧹 Cleaning up previous animations...');
                 
-                // Make POST request to backend
-                const response = await fetch('/generate-content', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ topic: topic })
-                });
-
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                // Remove all old p5 instances
+                if (window.p5Instances) {
+                    window.p5Instances.forEach(instance => {
+                        if (instance && instance.remove) instance.remove();
+                    });
+                    window.p5Instances = [];
                 }
-
-                // Get the reader for streaming
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-
-                console.log('Starting to read stream...');
-
-                // Process the stream
-                while (true) {
-                    const { done, value } = await reader.read();
-
-                    if (done) {
-                        console.log('Stream reading completed');
-                        break;
-                    }
-
-                    // Decode the chunk
-                    const chunk = decoder.decode(value, { stream: true });
-                    console.log('Received chunk:', chunk.substring(0, 100));
+                
+                // Clear any animation loops
+                if (window.animationFrameId) {
+                    cancelAnimationFrame(window.animationFrameId);
+                    window.animationFrameId = null;
+                }
+                
+                // Stop GSAP animations
+                if (typeof gsap !== 'undefined') {
+                    gsap.killTweensOf('*');
+                }
+                
+                // PART 1: Generate HTML structure
+                console.log('📄 PART 1: Generating HTML structure...');
+                const htmlRes = await fetch('/generate-html', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({topic})
+                });
+                const htmlData = await htmlRes.json();
+                
+                if (!htmlData.success) {
+                    throw new Error(htmlData.error || 'Failed to generate HTML');
+                }
+                
+                // Inject HTML
+                document.getElementById('app-container').innerHTML = htmlData.html;
+                console.log('✅ PART 1 Complete: HTML injected');
+                
+                // Wait a bit for DOM to settle
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // PART 2: Generate and inject CSS
+                console.log('🎨 PART 2: Generating CSS styles...');
+                const cssRes = await fetch('/generate-css', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({topic})
+                });
+                const cssData = await cssRes.json();
+                
+                if (cssData.success && cssData.css) {
+                    const style = document.createElement('style');
+                    style.textContent = cssData.css;
+                    document.head.appendChild(style);
+                    console.log('✅ PART 2 Complete: CSS applied');
+                }
+                
+                // Wait a bit more
+                await new Promise(resolve => setTimeout(resolve, 300));
+                
+                // PART 3: Generate and execute animation JavaScript
+                console.log('🎬 PART 3: Generating animation...');
+                const jsRes = await fetch('/generate-animation', {
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({topic})
+                });
+                const jsData = await jsRes.json();
+                
+                if (jsData.success && jsData.javascript) {
+                    console.log('📝 Animation code received:', jsData.javascript.length, 'characters');
+                    console.log('First 200 chars:', jsData.javascript.substring(0, 200));
                     
-                    // Process each line (SSE format: "data: {...}\n\n")
-                    const lines = chunk.split('\n');
-                    
-                    for (const line of lines) {
-                        if (line.startsWith('data: ')) {
-                            const jsonData = line.substring(6);
-                            
-                            try {
-                                const data = JSON.parse(jsonData);
-                                
-                                if (data.error) {
-                                    console.error('Error from server:', data.error);
-                                    throw new Error(data.error);
-                                }
-                                
-                                if (data.text) {
-                                    // Accumulate text and update display with formatting
-                                    accumulatedText += data.text;
-                                    contentDisplay.innerHTML = formatMarkdown(accumulatedText);
-                                    console.log('Updated content, total length:', accumulatedText.length);
-                                }
-                                
-                                if (data.done) {
-                                    console.log('Stream completed successfully');
-                                }
-                            } catch (parseError) {
-                                console.error('Error parsing JSON:', parseError, 'JSON data:', jsonData);
-                            }
+                    // Verify visual-demo div exists
+                    const visualDemo = document.getElementById('visual-demo');
+                    if (!visualDemo) {
+                        console.error('❌ visual-demo div not found!');
+                    } else {
+                        console.log('✅ visual-demo div found, executing animation...');
+                        
+                        // Clear the visual-demo div
+                        visualDemo.innerHTML = '';
+                        
+                        // Execute animation in isolated scope
+                        try {
+                            const script = document.createElement('script');
+                            script.textContent = `
+                                (function() {
+                                    ${jsData.javascript}
+                                })();
+                            `;
+                            document.body.appendChild(script);
+                            console.log('✅ PART 3 Complete: Animation executed');
+                        } catch (err) {
+                            console.error('❌ Animation execution error:', err);
+                            visualDemo.innerHTML = '<div style="padding:40px;text-align:center;color:red;">Animation Error: ' + err.message + '</div>';
                         }
                     }
+                } else {
+                    console.warn('⚠️ No animation code received');
                 }
-
-            } catch (error) {
-                console.error('Error generating content:', error);
                 
-                // Check if it's a rate limit error
-                const isRateLimit = error.message.includes('Rate limit') || error.message.includes('429') || error.message.includes('quota');
+                // Start streaming article content
+                console.log('📖 Starting article content stream...');
+                streamArticleContent(topic);
                 
-                contentDisplay.innerHTML = `
-                    <div class="error-message ${isRateLimit ? '' : 'critical'}">
-                        <strong>${isRateLimit ? '⏳ Rate Limit Reached' : '❌ Error'}</strong>
-                        ${error.message}
-                        ${isRateLimit ? '<div class="retry-hint"><div id="rate-limit-timer">Please wait 40 seconds...</div><br>💡 Tip: The free tier has limited requests per minute. Consider upgrading your API plan for higher limits.</div>' : ''}
-                    </div>
-                `;
-                
-                // Start countdown if rate limit
-                if (isRateLimit) {
-                    startRateLimitCountdown(40);
-                }
-            } finally {
-                // Re-enable buttons and hide loading
-                setButtonsDisabled(false);
-                setLoadingStatus(false);
-                console.log('Generation process finished');
+            } catch (e) {
+                console.error('❌ Error in generation process:', e);
+                document.getElementById('app-container').innerHTML = `
+                    <div style="text-align:center;padding:60px;">
+                        <h2>Error</h2>
+                        <p>${e.message}</p>
+                        <button onclick="location.reload()" style="padding:15px 30px;margin-top:20px;background:#667eea;color:white;border:none;border-radius:8px;cursor:pointer;">🏠 Go Home</button>
+                    </div>`;
             }
         }
-
-        // Add keyboard shortcuts (optional enhancement)
-        document.addEventListener('keydown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                if (e.key === '1') {
-                    e.preventDefault();
-                    generateContent('Russia');
-                } else if (e.key === '2') {
-                    e.preventDefault();
-                    generateContent('Japan');
-                } else if (e.key === '3') {
-                    e.preventDefault();
-                    generateContent('Mars Mission');
-                }
+        async function streamArticleContent(topic) {
+            const contentEl = document.getElementById('article-content');
+            if (!contentEl) return;
+            let text = '';
+            const res = await fetch('/generate-content', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({topic})});
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const {done, value} = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                chunk.split('\n').forEach(line => {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            const d = JSON.parse(line.slice(6));
+                            if (d.text) { text += d.text; contentEl.innerHTML = formatMarkdown(text); }
+                            if (d.done) { document.getElementById('article-loading').style.display = 'none'; contentEl.style.display = 'block'; const rt = document.getElementById('related-topics'); if (rt) rt.style.display = 'block'; }
+                        } catch (e) {}
+                    }
+                });
             }
-        });
+        }
+        function formatMarkdown(text) {
+            text = text.replace(/^## (.+)$/gm, '<h2>$1</h2>').replace(/^### (.+)$/gm, '<h3>$1</h3>').replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+            return text.split('\n\n').map(p => p.trim() && !p.includes('<h2>') && !p.includes('<h3>') ? `<p>${p.trim()}</p>` : p).join('\n');
+        }
     </script>
 </body>
 </html>

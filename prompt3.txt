@@ -1,0 +1,89 @@
+Generate an INTERACTIVE, VISUAL webpage for topic: "{topic}"
+
+CRITICAL: Create visual, animated, interactive elements - NOT just text!
+
+Examples:
+- Parabola → Draw animated parabola with Canvas/SVG, show equation, draggable points
+- Car → Animated SVG car moving across screen, steering wheel, speedometer
+- Solar System → Orbiting planets with CSS animations
+- DNA → Rotating double helix with SVG
+- Wave → Sine wave animation with Canvas
+- Heart → Beating heart SVG animation
+- Pendulum → Swinging pendulum physics simulation
+- Fibonacci → Animated spiral growing
+- Piano → Playable piano keys with sound
+- Clock → Working analog clock
+
+AVAILABLE LIBRARIES (Use these for better visualizations!):
+- **p5.js** - BEST for: Parabolas, sine waves, spirals, fractals, particles, physics simulations, generative art
+  Example: const sketch = (p) => {{ p.setup = () => {{ p.createCanvas(800, 400); }}; p.draw = () => {{ p.background(0); p.ellipse(p.mouseX, p.mouseY, 50); }}; }}; new p5(sketch, 'visual-demo');
+
+- **D3.js** - BEST for: Data-driven visualizations, force simulations, network graphs, trees, hierarchies
+  Example: d3.select('#visual-demo').append('svg').attr('width', 800).attr('height', 400);
+
+- **GSAP** - BEST for: Smooth animations, transitions, moving objects (cars, planes), tweening
+  Example: gsap.to('.car', {{duration: 3, x: 500, repeat: -1, ease: 'linear'}});
+
+- **Chart.js** - BEST for: Bar charts, line charts, pie charts, radar charts, simple graphs
+  Example: new Chart(ctx, {{type: 'line', data: {{labels: ['A','B','C'], datasets: [{{data: [1,2,3]}}]}}}});
+
+- **Three.js** - BEST for: 3D graphics, rotating objects, solar systems, molecules, 3D scenes
+  Example: const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, 2, 0.1, 1000);
+
+- **Plotly** - BEST for: Scientific plots, 3D surface plots, contour plots, statistical visualizations
+  Example: Plotly.newPlot('visual-demo', [{{x: [1,2,3], y: [2,4,6], type: 'scatter'}}]);
+
+- **Canvas API** - BEST for: Custom drawings, pixel manipulation, game graphics
+  Example: const ctx = canvas.getContext('2d'); ctx.fillRect(0, 0, 100, 100);
+
+IMPORTANT: Always initialize visualizations AFTER DOM is loaded. Use immediate execution or window.onload.
+
+USE THESE LIBRARIES! Examples:
+- Parabola → p5.js: draw y=x² curve with animation
+- Moving Car → GSAP: animate car element smoothly across screen
+- Solar System → Three.js: create 3D planets with orbits
+- Sine Wave → p5.js: animate wave with changing amplitude
+- Spiral → p5.js: draw Fibonacci spiral with growth animation
+- Bar Chart → Chart.js: create animated bar chart
+- Network → D3.js: force-directed graph
+- Physics → p5.js: particle system with gravity
+
+Requirements:
+1. Return JSON: {{"html": "...", "css": "...", "javascript": "...", "relatedTopics": [...]}}
+
+2. HTML must include:
+   - Themed header with emoji + topic name + home button
+   - <div id="visual-demo" style="height:400px;background:#f0f0f0;border-radius:15px;margin:30px 0;position:relative;overflow:hidden;">
+     <!-- Main interactive visualization goes here -->
+   </div>
+   - <div id="article-loading">Spinner</div> (initially visible)
+   - <article id="article-content" style="display:none"></article>
+   - <div id="related-topics" style="display:none">6 buttons with onclick="generateTopicPage('Name')"</div>
+
+3. CSS should:
+   - Match topic theme colors
+   - Style the visualization beautifully
+   - Include animations (@keyframes)
+   - Responsive design
+
+4. JavaScript should:
+   - **USE THE AVAILABLE LIBRARIES** (p5.js, D3.js, GSAP, Chart.js, Three.js, Plotly)
+   - Create interactive visualization in #visual-demo
+   - Add interactivity (click, drag, hover)
+   - Initialize on page load
+   - Example: new p5(sketch, 'visual-demo'), gsap.to(), d3.select(), new Chart(), Plotly.newPlot()
+   - Make it IMMERSIVE and ENGAGING!
+
+5. relatedTopics: 6 related VISUAL/INTERACTIVE subtopics array (no plain text topics!)
+   - Each should be visually demonstrable
+   - Example: For "Parabola" → related: ["Sine Wave", "Projectile Motion", "Bouncing Ball", "Fibonacci Spiral", "Pendulum", "Spring Motion"]
+
+6. Make it IMPRESSIVE and CREATIVE - users should say "WOW!"
+   - 80% focus on VISUALIZATION
+   - 20% focus on text content
+   - The visual demo is THE MAIN CONTENT!
+
+7. Return ONLY valid JSON, no markdown:
+{{"html": "...", "css": "...", "javascript": "...", "relatedTopics": [...]}}
+
+Generate for "{topic}":

@@ -1,11 +1,10 @@
+from flask import Flask, Response, request, jsonify, send_from_directory
 import os
-from flask import Flask, request, Response, send_from_directory
-from google import genai
-from google.genai import types
-import json
+from mistralai import Mistral
 from dotenv import load_dotenv
 import time
-from datetime import datetime, timedelta
+import json
+import re
 
 # Load environment variables from .env.local file
 load_dotenv('.env.local')
@@ -16,12 +15,21 @@ app = Flask(__name__, static_folder='static')
 last_request_time = None
 MIN_REQUEST_INTERVAL = 5  # Minimum 5 seconds between requests
 
-def get_gemini_client():
-    """Initialize Gemini client with API key"""
-    api_key = os.getenv('GEMINI_API_KEY')
+def load_prompt(prompt_number):
+    """Load prompt from external txt file"""
+    prompt_file = f"prompt{prompt_number}.txt"
+    try:
+        with open(prompt_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        raise Exception(f"Prompt file {prompt_file} not found!")
+
+def get_mistral_client():
+    """Initialize Mistral client with API key"""
+    api_key = os.getenv('MISTRAL_API_KEY')
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is required")
-    return genai.Client(api_key=api_key)
+        raise ValueError("MISTRAL_API_KEY environment variable is required")
+    return Mistral(api_key=api_key)
 
 def check_rate_limit():
     """Enforce minimum time between requests"""
@@ -42,21 +50,276 @@ def index():
 
 @app.route('/test-api', methods=['GET'])
 def test_api():
-    """Test if the Gemini API is accessible"""
+    """Test if the Mistral API is accessible"""
     try:
-        client = get_gemini_client()
+        client = get_mistral_client()
         # Try a simple, short request
-        response = client.models.generate_content(
-            model='gemini-2.0-flash-exp',
-            contents="Say 'API is working!' in 3 words."
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": "Say 'API is working!' in 3 words."}]
         )
         return {'status': 'success', 'message': 'API is working!'}
     except Exception as e:
         return {'status': 'error', 'message': str(e)}, 500
 
+
+@app.route('/generate-initial-ui', methods=['POST'])
+def generate_initial_ui():
+    """
+    Generate initial UI with random topics - Mistral creates the HTML structure
+    """
+    try:
+        print("Generating initial UI with Mistral AI...")
+        
+        client = get_mistral_client()
+        
+        prompt = """Generate HTML and CSS for a topic selection page with 6 diverse, VISUAL topics that can have interactive demonstrations.
+
+Requirements:
+1. Return a JSON object with two properties: "html" and "css"
+2. HTML should include:
+   - A header with title "RandomWiki Explorer"
+   - 6 topic buttons with emojis (use onclick="generateTopicPage('TopicName')")
+   - Each button should have a unique color/gradient
+   - Grid layout
+3. CSS should be modern with gradients, shadows, hover effects
+4. Choose VISUAL/INTERACTIVE topics like:
+   - Science: Parabola, Wave Motion, Pendulum, Solar System, DNA Structure
+   - Physics: Projectile Motion, Simple Harmonic Motion, Electromagnetic Waves
+   - Math: Fibonacci Spiral, Fractal Patterns, Sine Wave
+   - Transportation: Moving Car, Flying Plane, Sailing Ship
+   - Nature: Growing Tree, Blooming Flower, Ocean Waves
+   - Technology: Digital Clock, Analog Clock, Speedometer
+   - Music: Piano Keys, Sound Waves, Musical Notes
+   - Space: Orbiting Planets, Rocket Launch, Galaxy Rotation
+5. Mix categories: at least 2 math/science, 2 visual phenomena, 2 interactive objects
+6. Return ONLY valid JSON, no markdown
+
+Example: {{"html": "<div>...</div>", "css": ".button {{ ... }}"}}
+
+Generate now:"""
+        
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        print(f"AI response received, length: {len(response_text)}")
+        
+        # Extract JSON from response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            ui_data = json.loads(json_match.group())
+            return jsonify({
+                'success': True,
+                'html': ui_data.get('html', ''),
+                'css': ui_data.get('css', '')
+            })
+        else:
+            # If AI fails, return error - NO hardcoded fallback!
+            raise Exception("AI failed to generate topics. Please try again.")
+            return jsonify({'success': True, 'html': html, 'css': css})
+            
+    except Exception as e:
+        print(f"Error generating initial UI: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/generate-html', methods=['POST'])
+def generate_html():
+    """
+    PART 1: Generate ONLY HTML structure (no CSS, no JavaScript)
+    """
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'General')
+        
+        print(f"[PART 1] Generating HTML for: {topic}")
+        
+        client = get_mistral_client()
+        
+        # Load prompt from external file
+        prompt_template = load_prompt(1)
+        prompt = prompt_template.format(topic=topic)
+        
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        print(f"[PART 1] Response length: {len(response_text)}")
+        
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            html_data = json.loads(json_match.group())
+            html_code = html_data.get('html', '')
+            print(f"[PART 1] ✅ HTML generated: {len(html_code)} chars")
+            return jsonify({'success': True, 'html': html_code})
+        else:
+            raise Exception("No valid JSON in response")
+            
+    except Exception as e:
+        print(f"[PART 1] ❌ Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/generate-css', methods=['POST'])
+def generate_css():
+    """
+    PART 2: Generate ONLY CSS styles
+    """
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'General')
+        
+        print(f"[PART 2] Generating CSS for: {topic}")
+        
+        client = get_mistral_client()
+        
+        # Load prompt from external file
+        prompt_template = load_prompt(2)
+        prompt = prompt_template.format(topic=topic)
+        
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        print(f"[PART 2] Response length: {len(response_text)}")
+        
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            css_data = json.loads(json_match.group())
+            css_code = css_data.get('css', '')
+            print(f"[PART 2] ✅ CSS generated: {len(css_code)} chars")
+            return jsonify({'success': True, 'css': css_code})
+        else:
+            raise Exception("No valid JSON in response")
+            
+    except Exception as e:
+        print(f"[PART 2] ❌ Error: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/generate-topic-ui', methods=['POST'])
+def generate_topic_ui():
+    """
+    Generate topic-specific UI with INTERACTIVE VISUALIZATIONS - Mistral creates themed HTML/CSS/JS
+    """
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'General Knowledge')
+        
+        print(f"Generating INTERACTIVE topic UI for: {topic}")
+        
+        client = get_mistral_client()
+        
+        # Load prompt from external file
+        prompt_template = load_prompt(3)
+        prompt = prompt_template.format(topic=topic)
+        
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        print(f"Interactive UI response received for {topic}")
+        print(f"Response length: {len(response_text)} characters")
+        print(f"First 200 chars: {response_text[:200]}")
+        
+        # Extract JSON
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            try:
+                ui_data = json.loads(json_match.group())
+                print(f"Successfully parsed JSON. Keys: {ui_data.keys()}")
+                
+                # Check if JavaScript is present
+                has_js = 'javascript' in ui_data and ui_data.get('javascript')
+                js_length = len(ui_data.get('javascript', '')) if has_js else 0
+                print(f"JavaScript present: {has_js}, Length: {js_length} chars")
+                if has_js:
+                    print(f"First 100 chars of JS: {ui_data.get('javascript', '')[:100]}")
+                
+                return jsonify({
+                    'success': True,
+                    'html': ui_data.get('html', ''),
+                    'css': ui_data.get('css', ''),
+                    'javascript': ui_data.get('javascript', ''),
+                    'startStreaming': True
+                })
+            except json.JSONDecodeError as e:
+                print(f"JSON parse error: {e}")
+                raise Exception(f"Failed to parse AI response: {e}")
+        else:
+            print("No JSON found in response")
+            raise Exception("AI failed to generate UI for topic. Please try again.")
+            
+    except Exception as e:
+        print(f"Error generating topic UI: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/generate-animation', methods=['POST'])
+def generate_animation():
+    """
+    ROUND 2: Generate JavaScript animation code for the visualization
+    """
+    try:
+        data = request.get_json()
+        topic = data.get('topic', 'General')
+        
+        print(f"Generating ANIMATION for: {topic}")
+        
+        client = get_mistral_client()
+        
+        # Load prompt from external file
+        prompt_template = load_prompt(4)
+        prompt = prompt_template.format(topic=topic)
+        
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        response_text = response.choices[0].message.content.strip()
+        print(f"Animation response received, length: {len(response_text)}")
+        
+        # Extract JSON
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            try:
+                anim_data = json.loads(json_match.group())
+                js_code = anim_data.get('javascript', '')
+                print(f"Animation JavaScript: {len(js_code)} chars")
+                print(f"First 150 chars: {js_code[:150]}")
+                
+                return jsonify({
+                    'success': True,
+                    'javascript': js_code
+                })
+            except json.JSONDecodeError as e:
+                print(f"JSON parse error: {e}")
+                return jsonify({'success': False, 'error': f"Parse error: {e}"}), 500
+        else:
+            print("No JSON found in animation response")
+            return jsonify({'success': False, 'error': 'No valid JSON in response'}), 500
+            
+    except Exception as e:
+        print(f"Error generating animation: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+
+
 @app.route('/generate-content', methods=['POST'])
 def generate_content():
-    """Stream content generation from Gemini API"""
+    """Stream content generation from Mistral API"""
     try:
         # Check rate limit first
         try:
@@ -79,47 +342,38 @@ def generate_content():
                 mimetype='application/json'
             )
         
-        # Construct prompt for Gemini
-        prompt = f"""You are an expert encyclopedia writer. Generate a comprehensive article about "{topic}".
-
-Requirements:
-- Use proper Markdown formatting
-- Include a main title with ## (H2 heading)
-- Organize with ### (H3) subheadings
-- Use **bold** for key terms
-- Write 3-4 detailed paragraphs
-- Length: approximately 400-600 words
-
-Topic: {topic}
-
-Begin writing:"""
+        # Construct prompt for Mistral - MINIMAL TEXT, focus on visualization
+        prompt_template = load_prompt(5)
+        prompt = prompt_template.format(topic=topic)
         
         def generate():
-            """Generator function to stream content from Gemini"""
+            """Generator function to stream content from Mistral"""
             try:
                 # Initialize client for this request
-                client = get_gemini_client()
+                client = get_mistral_client()
                 
                 print(f"Starting content generation for topic: {topic}")
                 
-                # Call Gemini API with streaming - NO RETRY, just once
-                response = client.models.generate_content_stream(
-                    model='gemini-2.0-flash-exp',
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        temperature=0.7,
-                        top_p=0.95,
-                        top_k=40,
-                        max_output_tokens=1500,
-                    )
+                # Call Mistral API with streaming
+                response = client.chat.stream(
+                    model="mistral-small-latest",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ],
+                    temperature=0.7,
+                    max_tokens=200,  # Limit tokens to ensure brief content
                 )
                 
                 # Stream each chunk as it arrives
                 for chunk in response:
-                    if hasattr(chunk, 'text') and chunk.text:
-                        print(f"Sending chunk: {chunk.text[:50]}...")
+                    if chunk.data.choices[0].delta.content:
+                        text = chunk.data.choices[0].delta.content
+                        print(f"Sending chunk: {text[:50]}...")
                         # Send each text chunk to the frontend
-                        yield f"data: {json.dumps({'text': chunk.text})}\n\n"
+                        yield f"data: {json.dumps({'text': text})}\n\n"
                 
                 # Send completion signal
                 print("Stream completed successfully")
@@ -131,12 +385,8 @@ Begin writing:"""
                 print(f"Error during generation: {error_message}")
                 
                 # Check if it's a rate limit error
-                if '429' in error_message or 'RESOURCE_EXHAUSTED' in error_message:
-                    # Extract retry time if available
-                    if 'retry in' in error_message.lower():
-                        yield f"data: {json.dumps({'error': 'Rate limit exceeded. Please wait about 40 seconds and try again. The free tier has limited requests per minute.'})}\n\n"
-                    else:
-                        yield f"data: {json.dumps({'error': 'Rate limit exceeded. Please wait a moment and try again.'})}\n\n"
+                if '429' in error_message or 'rate limit' in error_message.lower():
+                    yield f"data: {json.dumps({'error': 'Rate limit exceeded. Please wait a moment and try again.'})}\n\n"
                 else:
                     yield f"data: {json.dumps({'error': error_message})}\n\n"
         

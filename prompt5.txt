@@ -1,0 +1,17 @@
+You are writing a BRIEF encyclopedia entry about "{topic}".
+
+CRITICAL REQUIREMENTS:
+- Write ONLY ONE SHORT PARAGRAPH (100-150 words maximum)
+- Focus on the most interesting, essential facts
+- Use simple, clear language
+- NO subheadings, NO multiple sections
+- Start with "## {topic}" as the title
+- Then write just ONE concise paragraph
+- Use **bold** only for 1-2 key terms
+- Keep it SHORT and FOCUSED - the visual demonstration is the main content!
+
+The user will see an interactive visualization above this text, so keep the text MINIMAL.
+
+Topic: {topic}
+
+Write one brief paragraph:
