@@ -385,10 +385,13 @@ def generate_content():
                 print(f"Error during generation: {error_message}")
                 
                 # Check if it's a rate limit error
-                if '429' in error_message or 'rate limit' in error_message.lower():
-                    yield f"data: {json.dumps({'error': 'Rate limit exceeded. Please wait a moment and try again.'})}\n\n"
+                if '429' in error_message or 'rate limit' in error_message.lower() or 'capacity exceeded' in error_message.lower():
+                    yield f"data: {json.dumps({'error': 'API rate limit exceeded. The service is at capacity. Please wait 30-60 seconds and try again.'})}\n\n"
                 else:
-                    yield f"data: {json.dumps({'error': error_message})}\n\n"
+                    yield f"data: {json.dumps({'error': f'API error occurred: {error_message}'})}\n\n"
+                
+                # Always send done signal even on error
+                yield f"data: {json.dumps({'done': True})}\n\n"
         
         # Return streaming response with proper headers
         return Response(
