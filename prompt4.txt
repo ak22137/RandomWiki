@@ -1,85 +1,62 @@
 Generate ONLY JavaScript code to create an interactive animation for topic: "{topic}"
 
-CRITICAL: The HTML structure already exists with #visual-demo div. Target it directly!
+CRITICAL RULES:
+- Target #visual-demo div (already exists in DOM)
+- Clear div first: document.getElementById('visual-demo').innerHTML = '';
+- MOST animations should have NO controls - just run automatically
+- If control needed, use ONLY ONE: slider OR checkbox
+- NO multiple controls, dropdowns, buttons, or color pickers
 
-CONTROL RULES - KEEP IT SIMPLE:
-- Most visualizations should be AUTOMATIC with NO controls
-- If a control is absolutely necessary, add ONLY ONE control (either a slider OR a checkbox)
-- Choose the most impactful control: speed slider for animations, toggle for visual effects
-- NO multiple sliders, NO color pickers, NO dropdown selects, NO buttons
-- Focus on the animation itself, not the controls
+CANVAS SIZING - FILL CONTAINER:
+const visualDemo = document.getElementById('visual-demo');
+const containerRect = visualDemo.getBoundingClientRect();
+const canvasWidth = containerRect.width;
+const canvasHeight = containerRect.height || 400;
 
-IMPORTANT RULES:
-1. Always verify the div exists before using it
-2. Clear the div first: document.getElementById('visual-demo').innerHTML = '';
-3. If adding a control, place it ABOVE the canvas in a simple compact div
-4. **RESPONSIVE CANVAS SIZE - FILL CONTAINER**: Make canvas fill the entire visual-demo div:
-   const visualDemo = document.getElementById('visual-demo');
-   const containerRect = visualDemo.getBoundingClientRect();
-   const canvasWidth = containerRect.width;
-   const canvasHeight = containerRect.height || 400;
-   // Ensure canvas exactly fills the container with no margins
-   
-5. For p5.js: Store instance globally AND use FULL CONTAINER sizing
-   const myP5 = new p5(sketch, 'visual-demo');
-   if (!window.p5Instances) window.p5Instances = [];
-   window.p5Instances.push(myP5);
-   
-   // In setup() - FILL THE ENTIRE CONTAINER:
-   const visualDemo = document.getElementById('visual-demo');
-   const containerRect = visualDemo.getBoundingClientRect();
-   const canvas = p.createCanvas(containerRect.width, containerRect.height || 400);
-   canvas.style('display', 'block');
-   canvas.style('width', '100%');
-   canvas.style('height', '100%');
+For p5.js:
+const myP5 = new p5(sketch, 'visual-demo');
+if (!window.p5Instances) window.p5Instances = [];
+window.p5Instances.push(myP5);
 
-6. For Canvas: Create canvas that FILLS THE ENTIRE CONTAINER
-   const canvas = document.createElement('canvas');
-   const visualDemo = document.getElementById('visual-demo');
-   const containerRect = visualDemo.getBoundingClientRect();
-   canvas.width = containerRect.width;
-   canvas.height = containerRect.height || 400;
-   canvas.style.display = 'block';
-   canvas.style.width = '100%';
-   canvas.style.height = '100%';
-   canvas.style.margin = '0';
-   
-7. For requestAnimationFrame: Store ID globally
-   window.animationFrameId = requestAnimationFrame(animate);
+// In setup():
+const visualDemo = document.getElementById('visual-demo');
+const containerRect = visualDemo.getBoundingClientRect();
+const canvas = p.createCanvas(containerRect.width, containerRect.height || 400);
+canvas.style('display', 'block');
+canvas.style('width', '100%');
+canvas.style('height', '100%');
 
-8. **MOBILE TOUCH SUPPORT**: For interactive elements, add touch event support
-   element.addEventListener('touchstart', handler);
-   element.addEventListener('touchmove', handler);
+For Canvas API:
+const canvas = document.createElement('canvas');
+const containerRect = visualDemo.getBoundingClientRect();
+canvas.width = containerRect.width;
+canvas.height = containerRect.height || 400;
+canvas.style.display = 'block';
+canvas.style.width = '100%';
+canvas.style.height = '100%';
 
-AVAILABLE LIBRARIES (already loaded):
-- p5.js - Use: new p5(sketch, 'visual-demo')
-- D3.js - Use: d3.select('#visual-demo')
-- GSAP - Use: gsap.to()
-- Chart.js - Use: new Chart()
-- Three.js - Use: new THREE.Scene()
-- Plotly - Use: Plotly.newPlot('visual-demo', data)
+For requestAnimationFrame: window.animationFrameId = requestAnimationFrame(animate);
 
-SIMPLE CONTROL EXAMPLES (Maximum 1 control per visualization):
+AVAILABLE LIBRARIES:
+p5.js, D3.js, GSAP, Chart.js, Three.js, Plotly
 
-Example 1: "Tidal Waves" - Single speed slider (OPTIONAL):
+EXAMPLES:
+
+Wave with speed control:
 ```javascript
 const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = `
-  <div style="background:rgba(255,255,255,0.1);padding:10px 15px;border-radius:8px;margin-bottom:15px;text-align:center;">
-    <label style="color:#fff;margin-right:10px;font-size:clamp(0.8em,2vw,1em);">Speed: <span id="speedVal">1.0</span>x</label>
-    <input type="range" id="speedSlider" min="0.5" max="2.5" step="0.1" value="1" 
-           style="width:200px;vertical-align:middle;">
+visualDemo.innerHTML = \`
+  <div style="background:rgba(255,255,255,0.1);padding:10px;text-align:center;">
+    <label style="color:#fff;">Speed: <span id="speedVal">1.0</span>x</label>
+    <input type="range" id="speedSlider" min="0.5" max="2.5" step="0.1" value="1" style="width:200px;">
   </div>
   <div id="wave-canvas"></div>
-`;
-
+\`;
 let speed = 1.0;
-
 document.getElementById('speedSlider').addEventListener('input', (e) => {{
   speed = parseFloat(e.target.value);
   document.getElementById('speedVal').textContent = speed.toFixed(1);
 }});
-
 const sketch = (p) => {{
   let angle = 0;
   p.setup = () => {{
@@ -110,71 +87,11 @@ if (!window.p5Instances) window.p5Instances = [];
 window.p5Instances.push(myP5);
 ```
 
-Example 2: "Pendulum" - Single checkbox to pause/play (OPTIONAL):
-```javascript
-const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = `
-  <div style="background:rgba(255,255,255,0.1);padding:10px 15px;border-radius:8px;margin-bottom:15px;text-align:center;">
-    <label style="color:#fff;"><input type="checkbox" id="pauseCheck"> ⏸️ Pause Animation</label>
-  </div>
-  <div id="pendulum-canvas"></div>
-`;
-
-let isPaused = false;
-let angle = 45, angleVelocity = 0, angleAcceleration = 0;
-const ropeLength = 200;
-
-document.getElementById('pauseCheck').addEventListener('change', (e) => {{
-  isPaused = e.target.checked;
-}});
-
-const sketch = (p) => {{
-  const gravity = 0.5;
-  p.setup = () => {{
-    const visualDemo = document.getElementById('visual-demo');
-    const containerRect = visualDemo.getBoundingClientRect();
-    const canvas = p.createCanvas(containerRect.width, containerRect.height || 400);
-    canvas.parent('pendulum-canvas');
-    canvas.style('display', 'block');
-    canvas.style('width', '100%');
-    canvas.style('height', '100%');
-  }};
-  p.draw = () => {{
-    p.background(20, 30, 50);
-    p.translate(425, 50);
-    
-    if(!isPaused) {{
-      angleAcceleration = (-1 * gravity / ropeLength) * p.sin(p.radians(angle));
-      angleVelocity += angleAcceleration;
-      angle += angleVelocity;
-      angleVelocity *= 0.99;
-    }}
-    
-    const x = ropeLength * p.sin(p.radians(angle));
-    const y = ropeLength * p.cos(p.radians(angle));
-    
-    p.stroke(200);
-    p.strokeWeight(2);
-    p.line(0, 0, x, y);
-    
-    p.fill(255, 100, 100);
-    p.noStroke();
-    p.circle(x, y, 40);
-  }};
-}};
-const myP5 = new p5(sketch);
-if (!window.p5Instances) window.p5Instances = [];
-window.p5Instances.push(myP5);
-```
-
-Example 3: "Solar System" - NO controls, fully automatic:
+Solar System (automatic):
 ```javascript
 const visualDemo = document.getElementById('visual-demo');
 visualDemo.innerHTML = '<div id="solar-canvas"></div>';
-
-let orbitalSpeed = 1.0;
 let angles = [0, 0, 0, 0];
-
 const sketch = (p) => {{
   p.setup = () => {{
     const visualDemo = document.getElementById('visual-demo');
@@ -188,32 +105,17 @@ const sketch = (p) => {{
   p.draw = () => {{
     p.background(10, 20, 40);
     p.translate(p.width/2, 200);
-    
-    // Sun
     p.fill(255, 200, 50);
     p.noStroke();
     p.circle(0, 0, 50);
-    
-    // Planets with orbits
     const colors = [[100,150,255], [255,100,100], [100,255,150], [255,200,100]];
     for(let i = 0; i < 4; i++) {{
       const radius = 80 + i * 45;
-      const size = 15 + i * 3;
-      
-      // Orbit
-      p.noFill();
-      p.stroke(60);
-      p.strokeWeight(1);
-      p.circle(0, 0, radius * 2);
-      
-      // Planet
       const x = p.cos(angles[i]) * radius;
       const y = p.sin(angles[i]) * radius;
       p.fill(...colors[i]);
-      p.noStroke();
-      p.circle(x, y, size);
-      
-      angles[i] += (0.01 / (i + 1)) * orbitalSpeed;
+      p.circle(x, y, 15 + i * 3);
+      angles[i] += 0.01 / (i + 1);
     }}
   }};
 }};
@@ -221,179 +123,11 @@ const myP5 = new p5(sketch);
 if (!window.p5Instances) window.p5Instances = [];
 window.p5Instances.push(myP5);
 ```
-
-Example 4: "Parabola" - NO controls needed:
-```javascript
-const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = '<div id="parabola-canvas"></div>';
-
-const sketch = (p) => {{
-  p.setup = () => {{
-    const visualDemo = document.getElementById('visual-demo');
-    const containerRect = visualDemo.getBoundingClientRect();
-    const canvas = p.createCanvas(containerRect.width, containerRect.height || 400);
-    canvas.parent('parabola-canvas');
-    canvas.style('display', 'block');
-    canvas.style('width', '100%');
-    canvas.style('height', '100%');
-  }};
-  
-  p.draw = () => {{
-    p.background(20, 30, 50);
-    
-    // Grid
-    p.stroke(40, 50, 70);
-    p.strokeWeight(1);
-    for(let i = 0; i < p.width; i += 50) p.line(i, 0, i, p.height);
-    for(let i = 0; i < p.height; i += 50) p.line(0, i, p.width, i);
-    
-    // Parabola
-    p.stroke(0, 255, 150);
-    p.strokeWeight(3);
-    p.noFill();
-    p.beginShape();
-    for(let x = 0; x < p.width; x++) {{
-      let normX = (x - p.width/2) / 100;
-      let y = p.height/2 - (normX * normX * 50);
-      p.vertex(x, y);
-    }}
-    p.endShape();
-  }};
-}};
-const myP5 = new p5(sketch);
-if (!window.p5Instances) window.p5Instances = [];
-window.p5Instances.push(myP5);
-```
-
-Example 5: "Moving Car" - Single speed slider (OPTIONAL):
-```javascript
-const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = `
-  <div style="background:rgba(255,255,255,0.1);padding:10px 15px;border-radius:8px;margin-bottom:15px;text-align:center;">
-    <label style="color:#fff;margin-right:10px;">Speed: <span id="speedVal">2.0</span>s</label>
-    <input type="range" id="speedSlider" min="1" max="5" step="0.5" value="2" 
-           style="width:200px;vertical-align:middle;">
-  </div>
-  <div id="car-container" style="position:relative;width:100%;max-width:850px;height:300px;margin:0 auto;background:linear-gradient(to bottom, #87CEEB 0%, #87CEEB 60%, #90EE90 60%, #90EE90 100%);border-radius:8px;overflow:hidden;">
-    <div class="car" style="position:absolute;left:0;top:50%;transform:translateY(-50%);font-size:60px;">🚗</div>
-  </div>
-`;
-
-let speed = 2.0;
-let animation;
-
-function updateAnimation() {{
-  const container = document.getElementById('car-container');
-  const maxX = container ? container.offsetWidth - 100 : 750;
-  if(animation) animation.kill();
-  animation = gsap.to('.car', {{
-    duration: speed, 
-    x: maxX, 
-    repeat: -1, 
-    yoyo: true, 
-    ease: 'power1.inOut'
-  }});
-}}
-
-document.getElementById('speedSlider').addEventListener('input', (e) => {{
-  speed = parseFloat(e.target.value);
-  document.getElementById('speedVal').textContent = speed.toFixed(1);
-  updateAnimation();
-}});
-
-updateAnimation();
-```
-
-Example 6: "Sine Wave" - NO controls needed:
-```javascript
-const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = '<div id="wave-canvas"></div>';
-
-const sketch = (p) => {{
-  let angle = 0;
-  p.setup = () => {{
-    const visualDemo = document.getElementById('visual-demo');
-    const containerRect = visualDemo.getBoundingClientRect();
-    const canvas = p.createCanvas(containerRect.width, containerRect.height || 400);
-    canvas.parent('wave-canvas');
-    canvas.style('display', 'block');
-    canvas.style('width', '100%');
-    canvas.style('height', '100%');
-  }};
-  p.draw = () => {{
-    p.background(20);
-    p.stroke(0, 255, 200);
-    p.strokeWeight(2);
-    p.noFill();
-    p.beginShape();
-    for(let x = 0; x < p.width; x++) {{
-      let y = p.height/2 + p.sin(angle + x * 0.02) * 100;
-      p.vertex(x, y);
-    }}
-    p.endShape();
-    angle += 0.05;
-  }};
-}};
-const myP5 = new p5(sketch);
-if (!window.p5Instances) window.p5Instances = [];
-window.p5Instances.push(myP5);
-```
-
-Example 7: "Canvas Animation" - NO controls, fully automatic:
-```javascript
-const visualDemo = document.getElementById('visual-demo');
-visualDemo.innerHTML = '<div id="solar-canvas"></div>';
-
-const canvas = document.createElement('canvas');
-const visualDemo = document.getElementById('visual-demo');
-const containerRect = visualDemo.getBoundingClientRect();
-canvas.width = containerRect.width;
-canvas.height = containerRect.height || 400;
-canvas.style.display = 'block';
-canvas.style.width = '100%';
-canvas.style.height = '100%';
-canvas.style.margin = '0';
-document.getElementById('solar-canvas').appendChild(canvas);
-const ctx = canvas.getContext('2d');
-
-let angle = 0;
-function animate() {{
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  
-  // Sun
-  ctx.fillStyle = '#FDB813';
-  ctx.beginPath();
-  ctx.arc(canvas.width/2, 200, 30, 0, Math.PI * 2);
-  ctx.fill();
-  
-  // Planet
-  const x = canvas.width/2 + Math.cos(angle) * 150;
-  const y = 200 + Math.sin(angle) * 150;
-  ctx.fillStyle = '#4169E1';
-  ctx.beginPath();
-  ctx.arc(x, y, 15, 0, Math.PI * 2);
-  ctx.fill();
-  
-  angle += 0.02;
-  window.animationFrameId = requestAnimationFrame(animate);
-}}
-animate();
-```
-
-CRITICAL RULES:
-- MOST animations should have NO controls at all - just run automatically
-- If you must add a control, use ONLY ONE: either a slider OR a checkbox
-- NO multiple controls, NO dropdowns, NO buttons, NO color pickers
-- Keep the control simple and compact (one line max)
-- Focus on making great animations, not complex control panels
 
 Requirements:
 1. Return ONLY JSON: {{"javascript": "...code here..."}}
-2. Use ONE of the available libraries (p5.js, GSAP, D3.js, Chart.js, Three.js, Plotly, or Canvas)
-3. Target the #visual-demo div (it already exists in the DOM)
-4. Make it ANIMATED and INTERACTIVE
-5. Code should execute immediately (no need for window.onload)
-6. Return VALID JSON only, no markdown
+2. Code executes immediately (no window.onload)
+3. Make it animated and visually engaging
+4. Return valid JSON only, no markdown
 
 Generate animation for "{topic}":
