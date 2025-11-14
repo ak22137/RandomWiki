@@ -55,6 +55,24 @@ header h1 {{
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   overflow: hidden;
   border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}}
+
+#visual-demo canvas {{
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  margin: 0 auto;
+}}
+
+#visual-demo svg {{
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  margin: 0 auto;
 }}
 
 #article-content {{

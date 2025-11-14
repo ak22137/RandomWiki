@@ -4,7 +4,7 @@ Requirements:
 1. Return JSON: {{"html": "...", "relatedTopics": ["Topic1", "Topic2", ...]}}
 2. Include these exact elements:
    - Header with emoji, topic name, and home button: <button onclick="location.reload()">🏠 Home</button>
-   - <div id="visual-demo" style="max-width:900px;width:100%;height:400px;margin:20px auto;background:#f0f0f0;border-radius:15px;overflow:hidden;"></div>
+   - <div id="visual-demo" style="max-width:900px;width:100%;height:400px;margin:20px auto;background:#f0f0f0;border-radius:15px;overflow:hidden;display:flex;align-items:center;justify-content:center;"></div>
    - <div id="article-loading" style="text-align:center;padding:30px;">⏳ Loading article...</div>
    - <article id="article-content" style="display:none;max-width:900px;width:100%;margin:0 auto;padding:0 20px;"></article>
    - <div id="related-topics" style="display:none;max-width:900px;width:100%;margin:30px auto;padding:0 20px;">
